@@ -83,15 +83,22 @@ TSG(Ticket Granting Server)： 许可证服务器
 
 举个栗子，这里我尽可能的简化相关逻辑，便于理解：
 你（Client）和小芳（Server）分别作为一个安全的个体，向KDC进行认证，添加你们的principal名称和密码。（密码你知,KDC知 所以是对称加密）
+
 好，现在你想和小芳联系了，但是你要确认这个小芳是你想找的小芳。
+
+![kdc1](./imgs/kdc1.png)
 
 你：hello KDC，我想联系下小芳，你把认证的session key给我吧。
 KDC接收到请求之后，首先从数据库里面查找你的principal，确认你是一个认证过的安全个体。然后将一个session key进行加密，注意，这里的session key有两份，一份是由你的密钥加密的，一份是由小芳的密钥加密的。它把两份都给了你。
 注意思考，这里为什么要把小芳密钥加密后的session key也给你（1. 这样kdc不用维护session key的列表 2. kdc直接发送给小芳不一定可达）
 你：你接收到两个session key，我们简化为Ckey（client 加密的key）和Skey（Server 加密的key）。这时候你用你自己的密钥，解开了Ckey。为了表明是你现在想与小芳说话而不是别人监听破解你的key而发送消息，这时候需要引入一个时间戳（认证时一个可接受的时间范围，时间间隔太长认为不安全，则server端不予处理）
+
+![kdc1](./imgs/kdc2.png)
+
 这时候你把你的个人信息（ClientInfo）+时间戳 通过解密后的Ckey（kdc给你的session key）加密，加上Skey 发送给小芳。
 小芳：小芳接收到你的消息，首先用自己的密钥解开Skey，获取到session key。再利用session key解密你发送的个人信息+时间戳。通过对比时间戳，发现时间在可控范围内，则认为你是安全的个体。可以进行通话。
 
+![kdc1](./imgs/kdc3.png)
 
 你：而这个时候你可能也有点慌，这是不是小芳啊？别又是小丽。你想认证一下小芳怎么办呢？你需要把上一步的个人信息+时间戳利用session key进行加密，加上Skey和一个需要Server认证的flag即可。
 小芳：小芳接收到你的消息，首先用自己的密钥解开Skey，获取到session key，再利用session key解密你发送的个人信息+时间戳。如果你需要认证，flag=true。则把你发送的时间戳用session key加密后发送给你。
@@ -102,9 +109,12 @@ KDC接收到请求之后，首先从数据库里面查找你的principal，确�
 2. Client要与Server进行通信则首先用TGT从KDC获得一个可以访问某一服务的Ticket（Session Key+Client Info）。这个Ticket是认证过程中最重要的一环，它的颁发机构就是双方可信的KDC，KDC对TGT解密认证，分发Ticket。
 3. Client向Server提交Ticket，Server接受到Ticket之后，对Ticket进行解密，验证时间戳。如需双方验证则发送加密时间戳到Client进行验证，验证成功后Client可以访问Server。
 
+![kdc1](./imgs/kdc4.png)
 
 Kerberos认证这部分确实比较复杂，可以对照图例多过两遍。那么Kerberos都有哪些优点？我们来总结一下：
 1. 安全可靠：Kerberos实现了双向认证
 2. 性能高：虽然Kerberos的认证需要Client Server 和 KDC三方认证，但是Client获取到Ticket之后（Ticket未过期），就可以直接与Server进行认证而不需要KDC的参与。
 3. 支持HA高可用，且成为被广泛接收的标准。支持不同平台进行操作。
 
+欢迎关注我：叁金大数据（不稳定持续更新~~~）
+![qrcode](./imgs/qrcode.jpg)
